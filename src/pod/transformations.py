@@ -1,4 +1,4 @@
-
+#-*- coding: UTF-8
 import networkx
 
 import ptnet
@@ -52,7 +52,7 @@ def __seq_to_pes (es, i, seq, indep) :
         j += 1
 
 
-def pes_to_bp (es, indep, equalize_postsets=False) :
+def pes_to_bp (es, indep, equalize_postsets=False,split_conflicts=False) :
     unf = ptnet.Unfolding ()
 
     # generate the events of the unfolding
@@ -64,12 +64,12 @@ def pes_to_bp (es, indep, equalize_postsets=False) :
     cfl_tab = __pes_to_bp_conflict_table_pick_single (es, cfl_tab)
     #print 'cfl_tab', cfl_tab
 
-    # generate one condition and related causalities for every clique 
-    pre_tab = __pes_to_bp_gen_conds_cfl (es, unf, cfl_tab, ev_tab)
+    # generate one condition and related causalities for every clique
+    pre_tab = __pes_to_bp_gen_conds_cfl (es, unf, cfl_tab, ev_tab,split_conflicts=split_conflicts)
 
     # for every two events in causal relation in the PES, generate
     # conditions (skiping causalities already introduced before)
-    pre_tab = __pes_to_bp_gen_conds_pre_clique_based (es, unf, ev_tab, pre_tab, indep)
+    pre_tab = __pes_to_bp_gen_conds_pre_clique_based (es, unf, ev_tab, pre_tab, indep,split_conflicts=split_conflicts)
     #pre_tab = __pes_to_bp_gen_conds_pre (es, unf, ev_tab, pre_tab)
 
     # for every maximal event, generate a single condition in the postset
@@ -146,14 +146,24 @@ def __pes_to_bp_conflict_table_pick_single (es, cfl_tab) :
             tab[e] = tup
     return tab
 
-def __pes_to_bp_gen_conds_cfl (es, unf, cfl_tab, ev_tab) :
+def __pes_to_bp_gen_conds_cfl (es, unf, cfl_tab, ev_tab,split_conflicts=False) :
     pre_tab = {}
-    for (epre, clique) in set (cfl_tab.values ()) :
-        pre = [ev_tab[epre]] if epre != None else []
-        post = [ev_tab[e] for e in clique]
-        c = unf.cond_add (None, pre, post)
-        for e in clique :
-            pre_tab[epre, e] = c
+    if split_conflicts:
+        import itertools
+        for (epre, clique) in set (cfl_tab.values ()) :
+            pre = [ev_tab[epre]] if epre != None else []
+            for clique_it in itertools.combinations(clique,2):
+                post = [ev_tab[e] for e in clique_it]
+                c = unf.cond_add (None, pre, post)
+                for e in clique_it :
+                    pre_tab[epre, e] = c
+    else:
+        for (epre, clique) in set (cfl_tab.values ()) :
+            pre = [ev_tab[epre]] if epre != None else []
+            post = [ev_tab[e] for e in clique]
+            c = unf.cond_add (None, pre, post)
+            for e in clique :
+                pre_tab[epre, e] = c
     return pre_tab
 
 def __pes_to_bp_gen_conds_pre (es, unf, ev_tab, pre_tab) :
@@ -168,7 +178,7 @@ def __pes_to_bp_gen_conds_pre (es, unf, ev_tab, pre_tab) :
                 pre_tab[None, e] = c
     return pre_tab
 
-def __pes_to_bp_gen_conds_pre_clique_based (es, unf, ev_tab, pre_tab, indep) :
+def __pes_to_bp_gen_conds_pre_clique_based (es, unf, ev_tab, pre_tab, indep,split_conflicts=False) :
     for e in es.events :
         # for all events in e.post, build graph whose edges are
         # the dependence relation
@@ -181,11 +191,17 @@ def __pes_to_bp_gen_conds_pre_clique_based (es, unf, ev_tab, pre_tab, indep) :
         # for every clique, generate one condition
         for clique in networkx.find_cliques (g) :
             # remove events for which there is already condition
-            for ep in [ep for ep in clique if (e, ep) in pre_tab] :
-                clique.remove (ep)
+            if not split_conflicts:
+                for ep in [ep for ep in clique if (e, ep) in pre_tab] :
+                    clique.remove (ep)
             if len (clique) == 0 : continue
             unfpostevs = [ev_tab[ep] for ep in clique]
-            c = unf.cond_add (None, [ev_tab[e]], unfpostevs)
+            #agrega la condicion
+            if split_conflicts:
+                for unfpost in unfpostevs:
+                    c = unf.cond_add (None, [ev_tab[e]], [unfpost])
+            else:
+                c = unf.cond_add (None, [ev_tab[e]], unfpostevs)
             for ep in clique :
                 pre_tab[e, ep] = c
         # events with empty preset will never occurr in previous
@@ -195,6 +211,7 @@ def __pes_to_bp_gen_conds_pre_clique_based (es, unf, ev_tab, pre_tab, indep) :
                 c = unf.cond_add (None, [], [ev_tab[e]])
                 pre_tab[None, e] = c
     return pre_tab
+
 
 def bp_to_net (unf, meq) :
     # this function does the actual marging of unf, using the merging
@@ -221,7 +238,6 @@ def bp_to_net (unf, meq) :
                     (t.name, len (eqclass), long_list (eqclass, 10))
     print "pod: bp > net: * ... %d events didn't merge: %s" % \
             (len (single_t), long_list (single_t, 15))
-    
 
     # merge conditions
     print 'pod: bp > net: folding conditions:'

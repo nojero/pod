@@ -187,7 +187,7 @@ class PES :
 
     def __str__ (self) :
         return "events %s minimal %s" % (repr (self.events), repr (self.minimal))
-    
+
 class Configuration :
     #def __init__ (self, pes, events=set()) :
     def __init__ (self, pes) :

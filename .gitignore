@@ -1,1 +1,4 @@
 *.pyc
+*.dot
+*.pnml
+*.pdf

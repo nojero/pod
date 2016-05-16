@@ -101,7 +101,7 @@ class Mprocess (net.Net) :
             nr += 1
         except :
             pass
-         
+
         # read place and transition names
         for i in range (nrplaces) :
             try :
@@ -115,7 +115,7 @@ class Mprocess (net.Net) :
                 nr += 1
             except :
                 raise Exception, 'line %d: unexpected end of file' % nr
-        
+
         # check there is no more lines
         try :
             next (it)
@@ -182,7 +182,7 @@ class Mprocess (net.Net) :
                 i -= 1
                 f.write ('%d%s' % (idxc[c], ' ' if i else ''))
             f.write ('\n')
-                
+
         f.write ('%d\n%s' % (m + 1, out))
 
     def ac_graph (self) :
@@ -246,6 +246,6 @@ class Mprocess (net.Net) :
                         idx[n], idx[np], g[n][np]['color']))
         f.write ('}\n')
 
-                    
+
 
 # vi:ts=4:sw=4:et:

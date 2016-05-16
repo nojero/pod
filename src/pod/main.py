@@ -55,6 +55,9 @@ The OPTIONS placeholder corresponds to zero or more of the following options:
    Prior to any usage (or truncation) of the log, it discards duplicate log
    sequences.
 
+ --split-conflicts
+   Split conflicts, as made by Santiago
+
  --eq=ID
    Instructs the tool to use the folding equivalence identified by ID. The
    following are available:
@@ -96,6 +99,9 @@ The OPTIONS placeholder corresponds to zero or more of the following options:
      the postset of the other.
      Accepts the same options than 'sp-smt', except for --smt-max-places.
 
+   * sp-smt-santi
+     Use equivalence defined by Santiago on his thesis project.
+   
    * ip-smt
      Merges all events with same label into 1 single transition.
      Ignores negative information.
@@ -113,6 +119,7 @@ The OPTIONS placeholder corresponds to zero or more of the following options:
      Merges no condition at all.
      Ignores negative information.
      Mainly for debuging purposes.
+
 """
 
 try :
@@ -128,6 +135,7 @@ try :
     import z3
     import ptnet
     import pes
+    import neg
 
     from log import *
     from folding import *
@@ -174,6 +182,7 @@ class Main :
         self.arg_smt_pre_distinct = False
         #self.arg_smt_merge_post = False
         self.arg_smt_forbid_self = False
+        self.arg_split_conflicts = False
 
         self.acset = None
         self.log = None
@@ -207,6 +216,7 @@ class Main :
                 "sp-smt-post",
                 "ip-smt",
                 "ev-only",
+                "sp-smt-santi",
                 ]
         usage = "pod [OPTION]... CMD {LOG,PNML} [DEPFILE]\n" + \
                 "Try 'pod --help' for more information."
@@ -229,6 +239,7 @@ class Main :
         #p.add_argument ("--smt-merge-post", action="store_true")
         p.add_argument ("--smt-forbid-self", action="store_true")
         #p.add_argument ("--format", choices=["pdf","dot","pnml"])
+        p.add_argument ("--split-conflicts", action="store_true")
 
         p.add_argument ('cmd', metavar="COMMAND", choices=cmd_choices)
         p.add_argument ('log_pnml', metavar="LOGFILE/PNML")
@@ -249,7 +260,7 @@ class Main :
         self.arg_smt_pre_distinct = args.smt_pre_distinct
         #self.arg_smt_merge_post = args.smt_merge_post
         self.arg_smt_forbid_self = args.smt_forbid_self
-        self.arg_no_asserts = args.no_asserts
+        self.arg_split_conflicts = args.split_conflicts
 
         # nr-places translates to min-places and max-places
         if args.smt_nr_places != None :
@@ -309,6 +320,7 @@ class Main :
                     "arg_smt_max_places",
                     "arg_eq",
                     "arg_output_path",
+                    "arg_split_conflicts",
                     ] :
             output_pair (sys.stdout, opt, self.__dict__[opt], 20, "pod: ")
 
@@ -620,9 +632,8 @@ class Main :
         # build the BP
         print "pod: building the BP from the PES..."
         equalize_postsets = self.arg_eq == 'sp-smt-post' or self.arg_eq == 'ip-smt'
-        self.bp = pes_to_bp (self.pes, self.indep, equalize_postsets)
+        self.bp = pes_to_bp (self.pes, self.indep, equalize_postsets,split_conflicts=self.arg_split_conflicts)
 
-        # merge the BP into a net
         self.__merge ()
 
         # save the net
@@ -786,6 +797,9 @@ class Main :
                     self.arg_smt_pre_distinct)
         elif self.arg_eq == "ev-only" :
             self.meq = Merging_equivalence_factory.ev_only (self.bp)
+        elif self.arg_eq == "sp-smt-santi":
+            domain,model = neg.prueba(self.bp)
+            self.meq = Santi2MergingEquivalence(domain,model)
         else :
             raise AssertionError, "Internal inconsistency"
 
@@ -794,6 +808,7 @@ class Main :
             raise Exception, "Couldn't find a folding equivalence with requested characteristics, aborting"
 
         # the merge equivalence is meq, folding the BP into a net
+
         (net, e2t, c2p) = bp_to_net (self.bp, self.meq)
         self.net = net
 

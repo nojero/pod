@@ -199,7 +199,7 @@ class Marking :
             self.__hash -= id (place) + self.__marking[place]
         if value != 0 :
             self.__hash += id (place) + value
-            
+
     def __hash__ (self) :
 #        i = 0
 #        for k,v in self.__marking.items () :
@@ -215,7 +215,7 @@ class Marking :
             return self.__marking == other.__marking
 
     def clone (self) :
-        new = Marking () 
+        new = Marking ()
         for place in self.__marking :
             new.__marking[place] = self.__marking[place]
         new.__hash = self.__hash
@@ -480,7 +480,7 @@ class Net :
             place_choices.append (pnew)
             t.pre_rem (p)
             t.pre_add (pnew)
-        return self.__stubbornify_make_fork_more (p, place_choices, idx + 1) 
+        return self.__stubbornify_make_fork_more (p, place_choices, idx + 1)
 
     def stubbornify (self) :
         idx = 0

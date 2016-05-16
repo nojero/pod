@@ -178,6 +178,37 @@ class ComputedMergingEquivalence (MergingEquivalence) :
     def classes (self) :
         return list (set (tuple (x) for x in self.__tag2class.values ()))
 
+class Santi2MergingEquivalence (MergingEquivalence) :
+    def __init__ (self, domain, model) :
+        MergingEquivalence.__init__ (self, domain)
+        self.model = model
+
+    def are_merged (self, x, y) :
+        self.is_in_domain ([x, y])
+        return self.model[z3.Int(repr(x))].as_long() == self.model[z3.Int(repr(y))].as_long()
+
+    def class_of (self, x ) :
+        #cuando me preguntan la clase de algo, la devuelvo
+        return [self.model[z3.Int(repr(x))].as_long()]
+
+    def classes (self) :
+        #separo las condiciones de los eventos
+        dt_c = {}
+        dt_e = {}
+        for x in self.domain:
+            #Sucio, lo deberia hacer mas lindo
+            # una condicion es algo tipo 'c14', un evento '2:e8'
+            #igual, esto es solo en mi ejemplo
+            if 'c' in repr(x):
+                clase = dt_c.setdefault(self.model[z3.Int(repr(x))].as_long(),[])
+                clase.append(x)
+            else:
+                clase = dt_e.setdefault(self.model[z3.Int(repr(x))].as_long(),[])
+                clase.append(x)
+
+        #devuelvo todas las clases
+        return dt_e.values() + dt_c.values()
+
 class IdentityMergingEquivalence (MergingEquivalence) :
     pass
 
