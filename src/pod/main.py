@@ -99,9 +99,12 @@ The OPTIONS placeholder corresponds to zero or more of the following options:
      the postset of the other.
      Accepts the same options than 'sp-smt', except for --smt-max-places.
 
-   * sp-smt-santi
-     Use equivalence defined by Santiago on his thesis project.
-   
+   * sp-smt-new
+     Use SP as defined in ATVA15
+
+   * sp-smt-new-optimized
+     Use SP as defined in ATVA15, with optimitazions
+
    * ip-smt
      Merges all events with same label into 1 single transition.
      Ignores negative information.
@@ -216,7 +219,8 @@ class Main :
                 "sp-smt-post",
                 "ip-smt",
                 "ev-only",
-                "sp-smt-santi",
+                "sp-smt-new",
+                "sp-smt-new-optimized",
                 ]
         usage = "pod [OPTION]... CMD {LOG,PNML} [DEPFILE]\n" + \
                 "Try 'pod --help' for more information."
@@ -797,8 +801,11 @@ class Main :
                     self.arg_smt_pre_distinct)
         elif self.arg_eq == "ev-only" :
             self.meq = Merging_equivalence_factory.ev_only (self.bp)
-        elif self.arg_eq == "sp-smt-santi":
-            domain,model = neg.prueba(self.bp)
+        elif self.arg_eq == "sp-smt-new":
+            domain,model = neg.SP(self.bp)
+            self.meq = Santi2MergingEquivalence(domain,model)
+        elif self.arg_eq == "sp-smt-new-optimized":
+            domain,model = neg.SP_opt(self.bp)
             self.meq = Santi2MergingEquivalence(domain,model)
         else :
             raise AssertionError, "Internal inconsistency"
